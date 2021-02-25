@@ -834,10 +834,17 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
   Definition tick : uaction reg_t ext_fn_t :=
     {{
         write0(cycle_count, read0(cycle_count) + |32`d1|);
-        (* This will print "MSG: 1" on each tick on Cuttlesim only *)
-        let one := extcall ext_msg (struct (Maybe (bits_t 1)) {
-          valid := Ob~1; data := Ob~1
-        }) in write1(debug, Ob~1)
+        (* debug starts with a value of 0 *)
+        let d := read0(debug) in
+        if (d == Ob~0) then (
+          (* ext_msg always returns Ob~1 *)
+          let one := extcall ext_msg (struct (Maybe (bits_t 1)) {
+            valid := Ob~1; data := d 
+          }) in write1(debug, one) (* using write0 doesn't affect the results *)
+        ) else pass
+        (* With Cuttlesim: ext_msg called once (displays value 0) - expected *)
+        (* With Verilator: ext_msg called on each tick (displays value 0 twice,
+           then 1) *)
     }}.
 
   Definition rv_register_name {n} (v: Vect.index n) :=
