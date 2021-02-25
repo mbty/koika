@@ -465,7 +465,8 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
   | instr_count
   | pc
   | epoch
-  | debug.
+  | debug
+  | debug2.
 
   (* State type *)
   Definition R idx :=
@@ -486,6 +487,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     | instr_count => bits_t 32
     | epoch => bits_t 1
     | debug => bits_t 1
+    | debug2 => bits_t 1
     end.
 
   (* Initial values *)
@@ -507,6 +509,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     | instr_count => Bits.zero
     | epoch => Bits.zero
     | debug => Bits.zero
+    | debug2 => Ob~1
     end.
 
   (* External functions, used to model memory *)
@@ -834,17 +837,15 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
   Definition tick : uaction reg_t ext_fn_t :=
     {{
         write0(cycle_count, read0(cycle_count) + |32`d1|);
-        (* debug starts with a value of 0 *)
-        let d := read0(debug) in
+        (* debug2 starts with a value of 1 - the test should never succeed yet
+           does with Verilator *)
+        let d := read0(debug2) in
         if (d == Ob~0) then (
           (* ext_msg always returns Ob~1 *)
           let one := extcall ext_msg (struct (Maybe (bits_t 1)) {
             valid := Ob~1; data := d 
           }) in write1(debug, one) (* using write0 doesn't affect the results *)
         ) else pass
-        (* With Cuttlesim: ext_msg called once (displays value 0) - expected *)
-        (* With Verilator: ext_msg called on each tick (displays value 0 twice,
-           then 1) *)
     }}.
 
   Definition rv_register_name {n} (v: Vect.index n) :=
