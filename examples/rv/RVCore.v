@@ -844,13 +844,15 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     {{
         write0(cycle_count, read0(cycle_count) + |32`d1|);
         (* debug* start with a value of 0 *)
-        (* works as expected: if never true, so display 0 on each tick *)
+        (* works as expected only with Cuttlesim *)
         let d := read0(debug) in
         (if (d == Ob~1) then (
           write0(debug2, Ob~1);
+          (* With Verilator, the message is displayed even though it shouldn't
+             be, yet the writes don't have an effect *)
           let one := extcall ext_msg (struct (Maybe (bits_t 1)) {
             valid := Ob~1; data := Ob~1
-          }) in write1(debug3, one)
+          }) in write0(debug, one) (* Same behavior if writex(debug2, one) *)
         ) else pass);
         let one := extcall ext_msg (struct (Maybe (bits_t 1)) {
           valid := Ob~1; data := read1(debug2)
