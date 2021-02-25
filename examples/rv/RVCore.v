@@ -466,7 +466,9 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
   | pc
   | epoch
   | debug
-  | debug2.
+  | debug2
+  | debug3
+  | debug4.
 
   (* State type *)
   Definition R idx :=
@@ -488,6 +490,8 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     | epoch => bits_t 1
     | debug => bits_t 1
     | debug2 => bits_t 1
+    | debug3 => bits_t 1
+    | debug4 => bits_t 1
     end.
 
   (* Initial values *)
@@ -509,7 +513,9 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     | instr_count => Bits.zero
     | epoch => Bits.zero
     | debug => Bits.zero
-    | debug2 => Ob~1
+    | debug2 => Bits.zero
+    | debug3 => Bits.zero
+    | debug4 => Bits.zero
     end.
 
   (* External functions, used to model memory *)
@@ -837,14 +843,18 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
   Definition tick : uaction reg_t ext_fn_t :=
     {{
         write0(cycle_count, read0(cycle_count) + |32`d1|);
-        let d := read0(debug2) in
-        (* For a change, this works as expected - no messages shown *)
-        if (Ob~0) then (
-          (* ext_msg always returns Ob~1 *)
+        (* debug* start with a value of 0 *)
+        (* works as expected: if never true, so display 0 on each tick *)
+        let d := read0(debug) in
+        (if (d == Ob~1) then (
+          write0(debug2, Ob~1);
           let one := extcall ext_msg (struct (Maybe (bits_t 1)) {
-            valid := Ob~1; data := d 
-          }) in write1(debug, one) (* using write0 doesn't affect the results *)
-        ) else pass
+            valid := Ob~1; data := Ob~1
+          }) in write1(debug3, one)
+        ) else pass);
+        let one := extcall ext_msg (struct (Maybe (bits_t 1)) {
+          valid := Ob~1; data := read1(debug2)
+        }) in write0(debug3, one)
     }}.
 
   Definition rv_register_name {n} (v: Vect.index n) :=
