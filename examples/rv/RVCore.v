@@ -837,10 +837,9 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
   Definition tick : uaction reg_t ext_fn_t :=
     {{
         write0(cycle_count, read0(cycle_count) + |32`d1|);
-        (* debug2 starts with a value of 1 - the test should never succeed yet
-           does with Verilator *)
         let d := read0(debug2) in
-        if (d == Ob~0) then (
+        (* For a change, this works as expected - no messages shown *)
+        if (Ob~0) then (
           (* ext_msg always returns Ob~1 *)
           let one := extcall ext_msg (struct (Maybe (bits_t 1)) {
             valid := Ob~1; data := d 
