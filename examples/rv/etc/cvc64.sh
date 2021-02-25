@@ -11,7 +11,7 @@ cvc64 $OPT \
       +define+MEM_ADDRESS_WIDTH=14 \
       +define+MEM_FILENAME='"'"$test"'"' \
       +define+SIMULATION \
-      memory.v ext_finish.v ext_mem.v rv32.v top.v testbench.v \
+      memory.v ext_finish.v ext_msg.v ext_mem.v rv32.v top.v testbench.v \
       -o cvc64.opt || exit
 
 # OPT='+dumpvars +interp +define+DUMPFLUSH'

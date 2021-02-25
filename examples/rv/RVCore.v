@@ -464,7 +464,8 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
   | cycle_count
   | instr_count
   | pc
-  | epoch.
+  | epoch
+  | debug.
 
   (* State type *)
   Definition R idx :=
@@ -484,6 +485,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     | cycle_count => bits_t 32
     | instr_count => bits_t 32
     | epoch => bits_t 1
+    | debug => bits_t 1
     end.
 
   (* Initial values *)
@@ -504,6 +506,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     | cycle_count => Bits.zero
     | instr_count => Bits.zero
     | epoch => Bits.zero
+    | debug => Bits.zero
     end.
 
   (* External functions, used to model memory *)
@@ -514,7 +517,8 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
   | ext_uart_read
   | ext_uart_write
   | ext_led
-  | ext_finish.
+  | ext_finish
+  | ext_msg.
 
   Definition mem_input :=
     {| struct_name := "mem_input";
@@ -533,6 +537,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
   Definition uart_output := maybe (bits_t 8).
   Definition led_input := maybe (bits_t 1).
   Definition finish_input := maybe (bits_t 8).
+  Definition msg_input := maybe (bits_t 1).
 
   Definition Sigma (fn: ext_fn_t) :=
     match fn with
@@ -541,6 +546,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     | ext_uart_write => {$ uart_input ~> bits_t 1 $}
     | ext_led => {$ led_input ~> bits_t 1 $}
     | ext_finish => {$ finish_input ~> bits_t 1 $}
+    | ext_msg => {$ msg_input ~> bits_t 1 $}
     end.
 
   Definition fetch : uaction reg_t ext_fn_t :=
@@ -650,6 +656,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
              let funct3 := get(getFields(fInst), funct3) in
              let rs1_val := get(decoded_bookkeeping, rval1) in
              let rs2_val := get(decoded_bookkeeping, rval2) in
+             let rd_val := get(dInst, inst)[|5`d7| :+ 5] in
              (* Use the multiplier module or the ALU *)
              let imm := getImmediate(dInst) in
              let pc := get(decoded_bookkeeping, pc) in
@@ -888,6 +895,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     {| efs_name := show fn;
        efs_method := match fn with
                     | ext_finish => true
+                    | ext_msg => true
                     | _ => false
                     end |}.
 
@@ -895,6 +903,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     {| efr_name := show fn;
        efr_internal := match fn with
                       | ext_finish => true
+                      | ext_msg => true
                       | _ => false
                       end |}.
 End RV32Core.
