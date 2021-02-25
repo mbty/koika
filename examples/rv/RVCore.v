@@ -834,10 +834,10 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
   Definition tick : uaction reg_t ext_fn_t :=
     {{
         write0(cycle_count, read0(cycle_count) + |32`d1|);
-        (* This will print "MSG: 1" on each tick, no matter the simulator *)
+        (* This will print "MSG: 1" on each tick on Cuttlesim only *)
         let one := extcall ext_msg (struct (Maybe (bits_t 1)) {
           valid := Ob~1; data := Ob~1
-        }) in write1(debug, one)
+        }) in write1(debug, Ob~1)
     }}.
 
   Definition rv_register_name {n} (v: Vect.index n) :=
