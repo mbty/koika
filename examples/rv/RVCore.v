@@ -703,7 +703,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (Stack : Stack
                    set pushed := Ob~1
                  else pass;
 
-                 (* With Verilator, failed is displayed first *)
+                 (* With Verilator, side effects happen in reverse order *)
                  let tmp := extcall ext_msg (struct (Maybe (bits_t 1)) {
                    valid := ((!isMemoryInst(dInst)) && isControlInst(dInst)); data := pushed
                  }) in write0(debug, tmp);
