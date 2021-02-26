@@ -3,6 +3,7 @@ Require Import Koika.Frontend.
 Require Import Coq.Lists.List.
 
 Require Import Koika.Std.
+Require Import rv.OhNo.
 Require Import rv.RVEncoding.
 Require Import rv.Scoreboard.
 Require Import rv.Multiplier.
@@ -363,7 +364,7 @@ Module Type RVParams.
   Parameter NREGS : nat.
 End RVParams.
 
-Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
+Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoInterface).
   Import ListNotations.
   Import RVP.
 
@@ -459,12 +460,14 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
   | d2e (state: fromDecode.reg_t)
   | e2w (state: fromExecute.reg_t)
   | rf (state: Rf.reg_t)
+  | oh_no (state: OhNo.reg_t)
   | mulState (state: Multiplier.reg_t)
   | scoreboard (state: Scoreboard.reg_t)
   | cycle_count
   | instr_count
   | pc
-  | epoch.
+  | epoch
+  | debug.
 
   (* State type *)
   Definition R idx :=
@@ -478,12 +481,14 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     | d2e r => fromDecode.R r
     | e2w r => fromExecute.R r
     | rf r => Rf.R r
-    | scoreboard r => Scoreboard.R r
+    | oh_no r => OhNo.R r
     | mulState r => Multiplier.R r
+    | scoreboard r => Scoreboard.R r
     | pc => bits_t 32
     | cycle_count => bits_t 32
     | instr_count => bits_t 32
     | epoch => bits_t 1
+    | debug => bits_t 1
     end.
 
   (* Initial values *)
@@ -498,12 +503,14 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     | f2dprim s => waitFromFetch.r s
     | d2e s => fromDecode.r s
     | e2w s => fromExecute.r s
-    | scoreboard s => Scoreboard.r s
+    | oh_no s => OhNo.r s
     | mulState s => Multiplier.r s
+    | scoreboard s => Scoreboard.r s
     | pc => Bits.zero
     | cycle_count => Bits.zero
     | instr_count => Bits.zero
     | epoch => Bits.zero
+    | debug => Bits.zero
     end.
 
   (* External functions, used to model memory *)
@@ -824,9 +831,15 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
         (when (put_valid && get(mem_out, put_ready)) do ignore(toMem.(MemReq.deq)()))
     }}.
 
+
   Definition tick : uaction reg_t ext_fn_t :=
     {{
-        write0(cycle_count, read0(cycle_count) + |32`d1|)
+        write0(cycle_count, read0(cycle_count) + |32`d1|);
+        (* Fails as expected *)
+        let res1 := oh_no.(OhNo.break_verilator)() in
+        let res2 := extcall ext_finish (struct (Maybe (bits_t 8)) {
+          valid := res1; data := |8`d5|
+        }) in write0(debug, res2)
     }}.
 
   Definition rv_register_name {n} (v: Vect.index n) :=
@@ -881,6 +894,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     {| show '(Scoreboard.Scores (Scoreboard.Rf.rData v)) := rv_register_name v |}.
 
   Existing Instance Multiplier.Show_reg_t.
+  Existing Instance OhNo.Show_reg_t.
   Instance Show_reg_t : Show reg_t := _.
   Instance Show_ext_fn_t : Show ext_fn_t := _.
 
@@ -939,7 +953,8 @@ End Mul32Params.
 
 Module RV32I <: Core.
   Module Multiplier := ShiftAddMultiplier Mul32Params.
-  Include (RV32Core RV32IParams Multiplier).
+  Module OhNo := OhNoF.
+  Include (RV32Core RV32IParams Multiplier OhNo).
 
   Definition _reg_t := reg_t.
   Definition _ext_fn_t := ext_fn_t.
@@ -979,7 +994,8 @@ End RV32EParams.
 
 Module RV32E <: Core.
   Module Multiplier := DummyMultiplier Mul32Params.
-  Include (RV32Core RV32EParams Multiplier).
+  Module OhNo := OhNoF.
+  Include (RV32Core RV32EParams Multiplier OhNo).
 
   Definition _reg_t := reg_t.
   Definition _ext_fn_t := ext_fn_t.
