@@ -33,7 +33,7 @@ Module StackF <: StackInterface.
       if (s0 == #(Bits.of_nat 2 2)) then (* overflow *)
         Ob~1
       else (
-        write1(size, s0 + |2`d1|);
+        write0(size, s0 + |2`d1|);
         Ob~0
       )
   }}.

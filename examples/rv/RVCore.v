@@ -468,7 +468,8 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (Stack : Stack
   | pc
   | epoch
   | debug
-  | debug2.
+  | debug2
+  | debug3.
 
   (* State type *)
   Definition R idx :=
@@ -491,6 +492,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (Stack : Stack
     | epoch => bits_t 1
     | debug => bits_t 1
     | debug2 => bits_t 1
+    | debug3 => bits_t 1
     end.
 
   (* Initial values *)
@@ -514,6 +516,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (Stack : Stack
     | epoch => Bits.zero
     | debug => Bits.zero
     | debug2 => Bits.zero
+    | debug3 => Bits.zero
     end.
 
   (* External functions, used to model memory *)
@@ -692,35 +695,24 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (Stack : Stack
              else if (isControlInst(dInst)) then
                set data := (pc + |32`d4|);     (* For jump and link *)
                (
-                 let res := Ob~0 in
+                 let failed := Ob~0 in
+                 let pushed := Ob~0 in
                  let rs1 := get(dInst, inst)[|5`d15| :+ 5] in
-                 (
-                   if ((get(dInst, inst)[|5`d0| :+ 7] == Ob~1~1~0~1~1~1~1)
-                     && (rd_val == |5`d1| || rd_val == |5`d5|))
-                   then
-                     set res := stack.(Stack.push)()
-                  else if (get(dInst, inst)[|5`d0| :+ 7] == Ob~1~1~0~0~1~1~1)
-                  then (
-                     if (rd_val == |5`d1| && rd_val == |5`d5|) then
-                       if (rd_val == rs1 || (rs1 != |5`d1| && rs1 != |5`d5|))
-                       then (
-                         set res := stack.(Stack.push)()
-                       ) else (
-                         set res := res || stack.(Stack.push)()
-                       )
-                     else pass
-                   )
-                   else pass
-                 );
+                 if get(dInst, inst)[|5`d0| :+ 7] == Ob~1~1~0~1~1~1~1 && rd_val == |5`d1| then
+                   set failed := stack.(Stack.push)();
+                   set pushed := Ob~1
+                 else pass;
 
-                 if (res) then (
-                   let tmp := extcall ext_finish (struct (Maybe (bits_t 8)) {
-                     valid := res; data := |8`d1|
-                   }) in
-                   (* This is a dirty hack required for verilator to stop
-                      optimizing the extcall out *)
-                   write0(debug, tmp)
-                 ) else pass
+                 (* With Verilator, failed is displayed first *)
+                 let tmp := extcall ext_msg (struct (Maybe (bits_t 1)) {
+                   valid := ((!isMemoryInst(dInst)) && isControlInst(dInst)); data := pushed
+                 }) in write0(debug, tmp);
+                 let tmp2 := extcall ext_msg (struct (Maybe (bits_t 1)) {
+                   valid := ((!isMemoryInst(dInst)) && isControlInst(dInst)); data := failed
+                 }) in write0(debug2, tmp2);
+                 let tmp3 := extcall ext_finish (struct (Maybe (bits_t 8)) {
+                   valid := (!isMemoryInst(dInst)) && isControlInst(dInst) && failed; data := |8`d1|
+                 }) in write0(debug3, tmp3)
                )
              else if (isMultiplyInst(dInst)) then
                mulState.(Multiplier.enq)(rs1_val, rs2_val)
