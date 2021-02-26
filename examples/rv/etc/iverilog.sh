@@ -11,5 +11,5 @@ echo +define+BROKEN_READMEMH \
      > $tmp
 
 set -x
-iverilog memory.v ext_finish.v ext_mem.v rv32.v top.v testbench.v -o iverilog.vvp \
+iverilog memory.v ext_finish.v ext_msg.v ext_mem.v rv32.v top.v testbench.v -o iverilog.vvp \
          -c $tmp || exit

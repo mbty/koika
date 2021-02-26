@@ -2,40 +2,42 @@
 
 Require Import Koika.Frontend Koika.Std.
 
-Module Type OhNoInterface.
+Module Type StackInterface.
   Axiom reg_t            : Type.
   Axiom R                : reg_t -> type.
   Axiom r                : forall idx : reg_t, R idx.
-  Axiom break_verilator  : UInternalFunction reg_t empty_ext_fn_t.
+  Axiom push             : UInternalFunction reg_t empty_ext_fn_t.
   Axiom FiniteType_reg_t : FiniteType reg_t.
   Axiom Show_reg_t       : Show reg_t.
-End OhNoInterface.
+End StackInterface.
 
-Module OhNoF <: OhNoInterface.
-  Inductive _reg_t := state.
+Module StackF <: StackInterface.
+  Definition capacity := 2.
+
+  Inductive _reg_t := size.
   Definition reg_t := _reg_t.
 
   Definition R r :=
     match r with
-    | state => bits_t 1
+    | size => bits_t 2
     end.
 
   Definition r reg : R reg :=
     match reg with
-    | state => Bits.zero
+    | size => Bits.zero
     end.
 
-  Definition break_verilator : UInternalFunction reg_t empty_ext_fn_t := {{
-    fun break_verilator () : bits_t 1 =>
-      let st := read0(state) in
-      if (st == Ob~0) then (* fail *)
+  Definition push : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun push () : bits_t 1 =>
+      let s0 := read0(size) in
+      if (s0 == #(Bits.of_nat 2 2)) then (* overflow *)
         Ob~1
       else (
-        write0(state, Ob~1);
+        write1(size, s0 + |2`d1|);
         Ob~0
       )
   }}.
 
   Instance Show_reg_t : Show reg_t := _.
   Instance FiniteType_reg_t : FiniteType reg_t := _.
-End OhNoF.
+End StackF.

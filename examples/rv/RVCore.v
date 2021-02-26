@@ -3,7 +3,7 @@ Require Import Koika.Frontend.
 Require Import Coq.Lists.List.
 
 Require Import Koika.Std.
-Require Import rv.OhNo.
+Require Import rv.Stack.
 Require Import rv.RVEncoding.
 Require Import rv.Scoreboard.
 Require Import rv.Multiplier.
@@ -364,7 +364,7 @@ Module Type RVParams.
   Parameter NREGS : nat.
 End RVParams.
 
-Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoInterface).
+Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (Stack : StackInterface).
   Import ListNotations.
   Import RVP.
 
@@ -460,14 +460,15 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
   | d2e (state: fromDecode.reg_t)
   | e2w (state: fromExecute.reg_t)
   | rf (state: Rf.reg_t)
-  | oh_no (state: OhNo.reg_t)
+  | stack (state: Stack.reg_t)
   | mulState (state: Multiplier.reg_t)
   | scoreboard (state: Scoreboard.reg_t)
   | cycle_count
   | instr_count
   | pc
   | epoch
-  | debug.
+  | debug
+  | debug2.
 
   (* State type *)
   Definition R idx :=
@@ -481,14 +482,15 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
     | d2e r => fromDecode.R r
     | e2w r => fromExecute.R r
     | rf r => Rf.R r
-    | oh_no r => OhNo.R r
+    | stack r => Stack.R r
     | mulState r => Multiplier.R r
     | scoreboard r => Scoreboard.R r
     | pc => bits_t 32
     | cycle_count => bits_t 32
     | instr_count => bits_t 32
     | epoch => bits_t 1
-    | debug => bits_t 1
+    | debug => bits_t 1
+    | debug2 => bits_t 1
     end.
 
   (* Initial values *)
@@ -503,7 +505,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
     | f2dprim s => waitFromFetch.r s
     | d2e s => fromDecode.r s
     | e2w s => fromExecute.r s
-    | oh_no s => OhNo.r s
+    | stack s => Stack.r s
     | mulState s => Multiplier.r s
     | scoreboard s => Scoreboard.r s
     | pc => Bits.zero
@@ -511,6 +513,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
     | instr_count => Bits.zero
     | epoch => Bits.zero
     | debug => Bits.zero
+    | debug2 => Bits.zero
     end.
 
   (* External functions, used to model memory *)
@@ -521,7 +524,8 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
   | ext_uart_read
   | ext_uart_write
   | ext_led
-  | ext_finish.
+  | ext_finish
+  | ext_msg.
 
   Definition mem_input :=
     {| struct_name := "mem_input";
@@ -540,6 +544,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
   Definition uart_output := maybe (bits_t 8).
   Definition led_input := maybe (bits_t 1).
   Definition finish_input := maybe (bits_t 8).
+  Definition msg_input := maybe (bits_t 1).
 
   Definition Sigma (fn: ext_fn_t) :=
     match fn with
@@ -548,6 +553,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
     | ext_uart_write => {$ uart_input ~> bits_t 1 $}
     | ext_led => {$ led_input ~> bits_t 1 $}
     | ext_finish => {$ finish_input ~> bits_t 1 $}
+    | ext_msg => {$ msg_input ~> bits_t 1 $}
     end.
 
   Definition fetch : uaction reg_t ext_fn_t :=
@@ -655,6 +661,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
           else
             (let fInst := get(dInst, inst) in
              let funct3 := get(getFields(fInst), funct3) in
+             let rd_val := get(dInst, inst)[|5`d7| :+ 5] in
              let rs1_val := get(decoded_bookkeeping, rval1) in
              let rs2_val := get(decoded_bookkeeping, rval2) in
              (* Use the multiplier module or the ALU *)
@@ -683,7 +690,38 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
                toDMem.(MemReq.enq)(struct mem_req {
                  byte_en := byte_en; addr := addr; data := data })
              else if (isControlInst(dInst)) then
-               set data := (pc + |32`d4|)     (* For jump and link *)
+               set data := (pc + |32`d4|);     (* For jump and link *)
+               (
+                 let res := Ob~0 in
+                 let rs1 := get(dInst, inst)[|5`d15| :+ 5] in
+                 (
+                   if ((get(dInst, inst)[|5`d0| :+ 7] == Ob~1~1~0~1~1~1~1)
+                     && (rd_val == |5`d1| || rd_val == |5`d5|))
+                   then
+                     set res := stack.(Stack.push)()
+                  else if (get(dInst, inst)[|5`d0| :+ 7] == Ob~1~1~0~0~1~1~1)
+                  then (
+                     if (rd_val == |5`d1| && rd_val == |5`d5|) then
+                       if (rd_val == rs1 || (rs1 != |5`d1| && rs1 != |5`d5|))
+                       then (
+                         set res := stack.(Stack.push)()
+                       ) else (
+                         set res := res || stack.(Stack.push)()
+                       )
+                     else pass
+                   )
+                   else pass
+                 );
+
+                 if (res) then (
+                   let tmp := extcall ext_finish (struct (Maybe (bits_t 8)) {
+                     valid := res; data := |8`d1|
+                   }) in
+                   (* This is a dirty hack required for verilator to stop
+                      optimizing the extcall out *)
+                   write0(debug, tmp)
+                 ) else pass
+               )
              else if (isMultiplyInst(dInst)) then
                mulState.(Multiplier.enq)(rs1_val, rs2_val)
              else
@@ -831,15 +869,9 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
         (when (put_valid && get(mem_out, put_ready)) do ignore(toMem.(MemReq.deq)()))
     }}.
 
-
   Definition tick : uaction reg_t ext_fn_t :=
     {{
-        write0(cycle_count, read0(cycle_count) + |32`d1|);
-        (* Fails as expected *)
-        let res1 := oh_no.(OhNo.break_verilator)() in
-        let res2 := extcall ext_finish (struct (Maybe (bits_t 8)) {
-          valid := res1; data := |8`d5|
-        }) in write0(debug, res2)
+      write0(cycle_count, read0(cycle_count) + |32`d1|)
     }}.
 
   Definition rv_register_name {n} (v: Vect.index n) :=
@@ -894,7 +926,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
     {| show '(Scoreboard.Scores (Scoreboard.Rf.rData v)) := rv_register_name v |}.
 
   Existing Instance Multiplier.Show_reg_t.
-  Existing Instance OhNo.Show_reg_t.
+  Existing Instance Stack.Show_reg_t.
   Instance Show_reg_t : Show reg_t := _.
   Instance Show_ext_fn_t : Show ext_fn_t := _.
 
@@ -902,6 +934,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
     {| efs_name := show fn;
        efs_method := match fn with
                     | ext_finish => true
+                    | ext_msg => true
                     | _ => false
                     end |}.
 
@@ -909,6 +942,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface) (OhNo : OhNoIn
     {| efr_name := show fn;
        efr_internal := match fn with
                       | ext_finish => true
+                      | ext_msg => true
                       | _ => false
                       end |}.
 End RV32Core.
@@ -953,8 +987,8 @@ End Mul32Params.
 
 Module RV32I <: Core.
   Module Multiplier := ShiftAddMultiplier Mul32Params.
-  Module OhNo := OhNoF.
-  Include (RV32Core RV32IParams Multiplier OhNo).
+  Module Stack := StackF.
+  Include (RV32Core RV32IParams Multiplier Stack).
 
   Definition _reg_t := reg_t.
   Definition _ext_fn_t := ext_fn_t.
@@ -994,8 +1028,8 @@ End RV32EParams.
 
 Module RV32E <: Core.
   Module Multiplier := DummyMultiplier Mul32Params.
-  Module OhNo := OhNoF.
-  Include (RV32Core RV32EParams Multiplier OhNo).
+  Module Stack := StackF.
+  Include (RV32Core RV32EParams Multiplier Stack).
 
   Definition _reg_t := reg_t.
   Definition _ext_fn_t := ext_fn_t.

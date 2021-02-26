@@ -108,6 +108,15 @@ struct extfuns_t {
     return 1'0_b;
   }
 
+  template<typename simulator>
+  bits<1> ext_msg(simulator &, struct_maybe_bits_1 req) {
+    if (req.valid) {
+      bits<1> msg = req.data;
+      printf("MSG: %d\n", msg.v);
+    }
+    return 1'1_b;
+  }
+
   extfuns_t() : dmem{}, imem{}, led{false} {}
 };
 
