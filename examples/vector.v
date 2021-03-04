@@ -4,7 +4,7 @@ Require Import Koika.Frontend.
 Definition nregs := 16.
 Definition reg_sz := 32.
 
-Inductive reg_t := rIndex | rData (n: Vect.index nregs) | rOutput.
+Inductive reg_t := rIndex | rData_0 | rData (n: Vect.index nregs) | rOutput.
 Inductive rule_name_t := read_reg_sequential | read_reg_tree | incr_index.
 
 Notation index_sz := (log2 nregs).
@@ -12,6 +12,7 @@ Notation index_sz := (log2 nregs).
 Definition R r :=
   match r with
   | rIndex => bits_t index_sz
+  | rData_0 => bits_t 1
   | rData n => bits_t reg_sz
   | rOutput => bits_t reg_sz
   end.
@@ -19,6 +20,7 @@ Definition R r :=
 Definition r reg : R reg :=
   match reg with
   | rIndex => Bits.zero
+  | rData_0 => Bits.zero
   | rData n => Bits.of_nat _ (index_to_nat n)
   | rOutput => Bits.zero
   end.
