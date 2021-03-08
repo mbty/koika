@@ -92,9 +92,9 @@ Module Internals.
     | [ _: Tracked ?app |- _ ] =>
       match unpack_app app with
       | (hd, args) => let hd_path := path_of_constructor hd in
-                     let hd_str := constr:(String.concat "_" (butlast $hd_path)) in
+                     let hd_str := constr:(String.concat "$" (butlast $hd_path)) in
                      let arg_strs := coq_list_of_list constr:(String.string) derive_show_recurse args in
-                     let str := constr:(String.concat "_" ($hd_str :: $arg_strs)) in
+                     let str := constr:(String.concat "$" ($hd_str :: $arg_strs)) in
                      let str := eval_simpl str in
                      exact $str
       end
