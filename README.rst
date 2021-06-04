@@ -1,6 +1,10 @@
 =========================================================
- |koika|: A Core Language for Rule-Based Hardware Design
+Kôika: A Core Language for Rule-Based Hardware Design
 =========================================================
+
+Les informations suivant cette ligne sont extraites du README original et
+concernent le processus d'installation. A priori, elles ne devraient pas être
+nécessaires. Au cas où.
 
 Getting started
 ===============

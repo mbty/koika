@@ -26,6 +26,10 @@ checked_paths := $(patsubst %,$(COQ_BUILD_DIR)/%.vo,$(CHECKED_MODULES))
 coq-check: coq-all
 	coqchk --output-context -R $(COQ_BUILD_DIR) Koika $(checked_paths)
 
+fpga:
+	cd examples/rv/_objects/rv32i.v/ && make MEM_NAME=unit/led top_ulx3s.bit &&\
+	./fujprog top_ulx3s.bit
+
 .PHONY: coq coq-all coq-check
 
 #########
@@ -117,7 +121,7 @@ dune-all: coq ocaml
 	@printf "\n== Completing full build ==\n"
 	dune build @all
 
-all: coq ocaml examples;
+all: coq ocaml examples fpga;
 
 clean: clean-examples
 	dune clean
