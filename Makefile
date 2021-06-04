@@ -110,9 +110,6 @@ clean-examples:
 # Whole project #
 #################
 
-readme:
-	./etc/readme/update.py README.rst
-
 package:
 	etc/package.sh
 
@@ -120,13 +117,13 @@ dune-all: coq ocaml
 	@printf "\n== Completing full build ==\n"
 	dune build @all
 
-all: coq ocaml examples readme;
+all: coq ocaml examples;
 
 clean: clean-examples
 	dune clean
 	rm -f koika-*.tar.gz
 
-.PHONY: readme package dune-all all clean
+.PHONY: package dune-all all clean
 
 .SUFFIXES:
 
