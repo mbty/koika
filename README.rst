@@ -2,6 +2,10 @@
 Kôika: A Core Language for Rule-Based Hardware Design
 =========================================================
 
+Dépendances:
+- g++
+- opam
+
 Les informations suivant cette ligne sont extraites du README original et
 concernent le processus d'installation. A priori, elles ne devraient pas être
 nécessaires. Au cas où.
