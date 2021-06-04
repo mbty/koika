@@ -16,9 +16,9 @@ rv32_targets := $(stems:=.rv32)
 vmh_targets := $(stems:=.vmh)
 dump_targets := $(stems:=.dump)
 
-RISCVCC32 ?= riscv-none-embed-gcc
+RISCVCC32 ?= ./xpack-riscv-none-embed-gcc-10.1.0-1.1/bin/riscv-none-embed-gcc
 RISCVCC32_ARGS := -g -mstrict-align -nostartfiles -static
-RISCVOBJDUMP32 ?= riscv-none-embed-objdump
+RISCVOBJDUMP32 ?= ./xpack-riscv-none-embed-gcc-10.1.0-1.1/bin/riscv-none-embed-objdump
 RISCVOBJDUMP32_ARGS := --disassemble --source --full-contents
 
 cc := $(RISCVCC32) $(RISCVCC32_ARGS)

@@ -38,9 +38,9 @@ ocaml:
 
 .PHONY: ocaml
 
-####################
-# Examples & tests #
-####################
+############
+# Examples #
+############
 
 # The setup below generates one Makefile rule per target.  It uses canned rules
 # and eval because patterns like ‘%1/_objects/%2.v/: %1/%2.v’ aren't supported.
@@ -89,15 +89,14 @@ $(dirpath) $(dirpath)/: $(1) ocaml | configure
 	$(value cuttlec_recipe_coda)
 endef
 
-TESTS := $(wildcard tests/*.lv) $(wildcard tests/*.v)
-EXAMPLES := $(wildcard examples/*.lv) $(wildcard examples/*.v) examples/rv/rv32i.v examples/rv/rv32e.v
+EXAMPLES := examples/rv/rv32i.v examples/rv/rv32e.v
 
 configure:
-	etc/configure $(filter %.v,${TESTS} ${EXAMPLES})
+	etc/configure $(filter %.v, ${EXAMPLES})
 
-$(foreach fname,$(filter %.lv, $(EXAMPLES) $(TESTS)),\
+$(foreach fname,$(filter %.lv, $(EXAMPLES)),\
 	$(eval $(call cuttlec_lv_template,$(fname))))
-$(foreach fname,$(filter %.v, $(EXAMPLES) $(TESTS)),\
+$(foreach fname,$(filter %.v, $(EXAMPLES)),\
 	$(eval $(call cuttlec_v_template,$(fname))))
 
 examples: $(call target_directories,$(EXAMPLES));
@@ -105,12 +104,7 @@ clean-examples:
 	find examples/ -type d \( -name _objects -or -name _build \) -exec rm -rf {} +
 	rm -rf ${BUILD_DIR}/examples
 
-tests: $(call target_directories,$(TESTS));
-clean-tests:
-	find tests/ -type d  \( -name _objects -or -name _build \) -exec rm -rf {} +
-	rm -rf ${BUILD_DIR}/tests
-
-.PHONY: configure examples clean-examples tests clean-tests
+.PHONY: configure examples clean-examples
 
 #################
 # Whole project #
@@ -126,9 +120,9 @@ dune-all: coq ocaml
 	@printf "\n== Completing full build ==\n"
 	dune build @all
 
-all: coq ocaml examples tests readme;
+all: coq ocaml examples readme;
 
-clean: clean-tests clean-examples
+clean: clean-examples
 	dune clean
 	rm -f koika-*.tar.gz
 
