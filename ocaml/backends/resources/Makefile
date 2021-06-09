@@ -260,7 +260,7 @@ yosys_opts := $(YOSYS_FLAGS) $(YOSYS_OPTS)
 yosys_libdir_args := $(patsubst %,-libdir %,$(YOSYS_LIBDIRS))
 
 %.json.v: %.json
-	yosys -p 'read_json -wideports $^; write_verilog $@'
+	../../../../yosys/yosys -p 'read_json -wideports $^; write_verilog $@'
 
 # ICE40
 # =====
@@ -274,7 +274,7 @@ ICE40_FREQUENCY ?= 48
 ice40 := $(basename $(notdir $(ICE40_TOP)))
 
 $(ice40).json: $(ICE40_TOP)
-	yosys $(yosys_opts) -l $(ice40).json.log -p 'read_verilog $(ICE40_TOP); hierarchy $(yosys_libdir_args) -top $(ice40); synth_ice40 -retime -top $(ice40) -json $@'
+	../../../../yosys/yosys $(yosys_opts) -l $(ice40).json.log -p 'read_verilog $(ICE40_TOP); hierarchy $(yosys_libdir_args) -top $(ice40); synth_ice40 -retime -top $(ice40) -json $@'
 
 $(ice40).asc: $(ICE40_PCF) $(ice40).json
 	nextpnr-ice40 --$(ICE40_DEVICE) --freq $(ICE40_FREQUENCY) --opt-timing --timing-allow-fail --package $(ICE40_PACKAGE) --pcf $(ICE40_PCF) --seed 0 --asc $@ --json $(ice40).json
@@ -304,7 +304,7 @@ ECP5_FREQUENCY ?= 25
 
 ecp5 := $(basename $(notdir $(ECP5_TOP)))
 
-yosys = yosys $(yosys_opts) -l $(2).json.log \
+yosys = ../../../../yosys/yosys $(yosys_opts) -l $(2).json.log \
 	-p 'read_verilog $(1); hierarchy $(yosys_libdir_args) -top $(2); $(3) -top $(2) -json $@'
 
 $(ecp5).json: $(ecp5).v
@@ -315,7 +315,7 @@ $(ecp5).config: $(ecp5).json
 		--package $(ECP5_PACKAGE) --lpf $(ECP5_LPF) --seed 0 --textcfg $(ecp5).config
 
 $(ecp5).bit: $(ecp5).config
-	ecppack --compress $< $@
+	../../../../prjtrellis/build/ecppack --compress $< $@
 
 clean-ecp5:
 	rm -f $(ecp5).json

@@ -36,7 +36,7 @@ echo "----------------------------------------"
 export VERILOG_TOP=$KOIKA_TOP
 export YOSYS_LIBDIR=$KOIKA_LIBDIR
 export VERILOG_INPUT=$YOSYS_LIBDIR/$VERILOG_TOP.v
-yosys -v8 "$YOSYS_DEFINES" -c synth.tcl -l $VERILOG_TOP.log
+../../../../yosys/yosys -v8 "$YOSYS_DEFINES" -c synth.tcl -l $VERILOG_TOP.log
 
 echo "--------------------------------------"
 echo "-- Running synthesis for BSV design --"
@@ -44,7 +44,7 @@ echo "--------------------------------------"
 export VERILOG_TOP=$BSV_TOP
 export YOSYS_LIBDIR=$BSV_LIBDIR
 export VERILOG_INPUT=$YOSYS_LIBDIR/$VERILOG_TOP.v
-yosys -v8 "$YOSYS_DEFINES" -c synth.tcl -l $VERILOG_TOP.log || true
+../../../../yosys/yosys -v8 "$YOSYS_DEFINES" -c synth.tcl -l $VERILOG_TOP.log || true
 
 echo "======================="
 echo "== Synthesis results =="

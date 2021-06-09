@@ -8,6 +8,30 @@ verbose := $(if $(V),,@)
 
 default: all
 
+#########
+# Yosys #
+#########
+
+yosys:
+	@printf "\n== Building Yosys ==\n"
+	cd yosys && make -j 8
+
+###########
+# Trellis #
+###########
+
+trellis:
+	@printf "\n== Building Trellis ==\n"
+	mkdir -p prjtrellis/build && cd prjtrellis/build && cmake ../libtrellis && make -j 8
+
+#########
+# Tests #
+#########
+
+tests:
+	@printf "\n== RV tests ==\n"
+	cd examples/rv/tests && make -j 8
+
 #######
 # Coq #
 #######
@@ -26,11 +50,13 @@ checked_paths := $(patsubst %,$(COQ_BUILD_DIR)/%.vo,$(CHECKED_MODULES))
 coq-check: coq-all
 	coqchk --output-context -R $(COQ_BUILD_DIR) Koika $(checked_paths)
 
-fpga:
-	cd examples/rv/_objects/rv32i.v/ && make MEM_NAME=unit/led top_ulx3s.bit &&\
+fpga: yosys
+	cd examples/rv/_objects/rv32i.v &&\
+	cp ../../etc/sv/*.v . &&\
+	make MEM_NAME="../../tests/_build/rv32i/unit/led" top_ulx3s.bit &&\
 	./fujprog top_ulx3s.bit
 
-.PHONY: coq coq-all coq-check
+.PHONY: tests yosys trellis coq coq-all coq-check
 
 #########
 # OCaml #
@@ -121,7 +147,7 @@ dune-all: coq ocaml
 	@printf "\n== Completing full build ==\n"
 	dune build @all
 
-all: coq ocaml examples fpga;
+all: yosys trellis coq ocaml tests examples fpga;
 
 clean: clean-examples
 	dune clean

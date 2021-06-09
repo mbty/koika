@@ -2,11 +2,12 @@
 Kôika: A Core Language for Rule-Based Hardware Design
 =========================================================
 
-Dépendances à installer via le gestionnaire de paquets:
-- g++ ;
+Dépendances à installer via le gestionnaire de paquets :
+- g++ (via gcc) ;
 - opam ;
+- yosys.
 
-Puis:
+Puis :
 ```sh
 opam init
 opam switch create 4.09 ocaml-base-compiler.4.09.0
@@ -15,7 +16,7 @@ opam install base=v0.13.1 coq=8.11.1 core=v0.13.0 dune=2.5.1 hashcons=1.3 parsex
 
 Les informations suivant cette ligne sont extraites du README original et
 concernent le processus d'installation. A priori, elles ne devraient pas être
-nécessaires. Au cas où.
+nécessaires.
 
 Getting started
 ===============

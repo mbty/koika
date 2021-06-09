@@ -1,4 +1,4 @@
-yosys -import
+../../../../yosys/yosys -import
 
 set vdir $::env(YOSYS_LIBDIR)
 set input $::env(VERILOG_INPUT)
