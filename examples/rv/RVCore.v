@@ -596,15 +596,20 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
         let instr := get(instr,data) in
         let fetched_bookkeeping := f2dprim.(waitFromFetch.deq)() in
         let decodedInst := decode_fun(instr) in
-        when (get(fetched_bookkeeping, epoch) == read1(epoch)) do
-             (let rs1_idx := get(getFields(instr), rs1) in
+        when (get(fetched_bookkeeping, epoch) == read1(epoch)) do (
+             let rs1_idx := get(getFields(instr), rs1) in
              let rs2_idx := get(getFields(instr), rs2) in
-             let score1 := scoreboard.(Scoreboard.search)(sliceReg(rs1_idx)) in
-             let score2 := scoreboard.(Scoreboard.search)(sliceReg(rs2_idx)) in
-             guard (score1 == Ob~0~0 && score2 == Ob~0~0);
+             (when (get(decodedInst, valid_rs1)) do
+               let score1 := scoreboard.(Scoreboard.search)(sliceReg(rs1_idx)) in
+               guard (score1 == Ob~0~0)
+             );
+             (when (get(decodedInst, valid_rs2)) do
+               let score2 := scoreboard.(Scoreboard.search)(sliceReg(rs2_idx)) in
+               guard (score2 == Ob~0~0)
+             );
              (when (get(decodedInst, valid_rd)) do
-                  let rd_idx := get(getFields(instr), rd) in
-                  scoreboard.(Scoreboard.insert)(sliceReg(rd_idx)));
+                let rd_idx := get(getFields(instr), rd) in
+                scoreboard.(Scoreboard.insert)(sliceReg(rd_idx)));
              let rs1 := rf.(Rf.read_1)(sliceReg(rs1_idx)) in
              let rs2 := rf.(Rf.read_1)(sliceReg(rs2_idx)) in
              let decode_bookkeeping := struct decode_bookkeeping {
