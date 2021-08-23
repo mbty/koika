@@ -47,46 +47,98 @@ Section RV32Helpers.
                           :: nil
     |}.
 
-  Definition getFields : UInternalFunction reg_t empty_ext_fn_t :=
-    {{
-        fun getFields (inst : bits_t 32) : struct_t inst_field =>
-          let res := struct inst_field
-                            { opcode := inst[|5`d0| :+ 7];
-                              funct3 := inst[|5`d12| :+ 3];
-                              funct7 := inst[|5`d25| :+ 7];
-                              funct5 := inst[|5`d27| :+ 5];
-                              funct2 := inst[|5`d25| :+ 2];
-                              rd     := inst[|5`d7| :+ 5];
-                              rs1    := inst[|5`d15| :+ 5];
-                              rs2    := inst[|5`d20| :+ 5];
-                              rs3    := inst[|5`d27| :+ 5];
-                              immI   := {signExtend 12 20}(inst[|5`d20| :+ 12]);
-                              immS   := {signExtend 12 20}(inst[|5`d25|:+ 7] ++ inst[|5`d7| :+ 5]);
-                              immB   := {signExtend 13 19}
-                                            (inst[|5`d31|]
-                                                 ++ inst[|5`d7|]
-                                                 ++ inst[|5`d25| :+ 6]
-                                                 ++ inst[|5`d8| :+ 4]
-                                                 ++ |1`d0|);
-                              immU   := (inst[|5`d12| :+ 20]
-                                             ++ |12`d0|);
-                              immJ   := {signExtend 21 11}(inst[|5`d31|]
-                                                               ++ inst[|5`d12| :+ 8]
-                                                               ++ inst[|5`d20|]
-                                                               ++ inst[|5`d21|:+10]
-                                                               ++ |1`d0|);
-                              csr    := (inst[|5`d20| :+ 12]) } in
-          res
-        }}.
 
+
+  Definition get_opcode : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_opcode (inst : bits_t 32) : bits_t 7 =>
+      inst[|5`d0| :+ 7]
+  }}.
+
+  Definition get_funct3 : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_opcode (inst : bits_t 32) : bits_t 3 =>
+      inst[|5`d12| :+ 3]
+  }}.
+
+  Definition get_funct7 : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_opcode (inst : bits_t 32) : bits_t 7 =>
+      inst[|5`d25| :+ 7]
+  }}.
+
+  Definition get_funct5 : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_opcode (inst : bits_t 32) : bits_t 5 =>
+      inst[|5`d27| :+ 5]
+  }}.
+
+  Definition get_funct2 : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_opcode (inst : bits_t 32) : bits_t 2 =>
+      inst[|5`d25| :+ 2]
+  }}.
+
+  Definition get_rd     : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_opcode (inst : bits_t 32) : bits_t 5 =>
+      inst[|5`d7| :+ 5]
+  }}.
+
+  Definition get_rs1    : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_opcode (inst : bits_t 32) : bits_t 5 =>
+      inst[|5`d15| :+ 5]
+  }}.
+
+  Definition get_rs2    : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_opcode (inst : bits_t 32) : bits_t 5 =>
+      inst[|5`d20| :+ 5]
+  }}.
+
+  Definition get_rs3    : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_opcode (inst : bits_t 32) : bits_t 5 =>
+      inst[|5`d27| :+ 5]
+  }}.
+
+  Definition get_immI   : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_opcode (inst : bits_t 32) : bits_t 32 =>
+      {signExtend 12 20}(inst[|5`d20| :+ 12])
+  }}.
+
+  Definition get_immS   : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_opcode (inst : bits_t 32) : bits_t 32 =>
+      {signExtend 12 20}(inst[|5`d25|:+ 7] ++ inst[|5`d7| :+ 5])
+  }}.
+
+  Definition get_immB   : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_immB (inst : bits_t 32) : bits_t 32 =>
+      {signExtend 13 19} (
+        inst[|5`d31|] ++ inst[|5`d7|] ++ inst[|5`d25| :+ 6] ++ inst[|5`d8| :+ 4]
+          ++ |1`d0|
+      )
+  }}.
+
+  Definition get_immU   : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_immU (inst : bits_t 32) : bits_t 32 =>
+      (inst[|5`d12| :+ 20] ++ |12`d0|)
+  }}.
+
+  Definition get_immJ   : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_immJ (inst : bits_t 32) : bits_t 32 =>
+      {signExtend 21 11} (
+        inst[|5`d31|] ++ inst[|5`d12| :+ 8] ++ inst[|5`d20|]
+        ++ inst[|5`d21|:+10] ++ |1`d0|
+      )
+  }}.
+
+  Definition get_csr    : UInternalFunction reg_t empty_ext_fn_t := {{
+    fun get_opcode (inst : bits_t 32) : bits_t 12 =>
+      (inst[|5`d20| :+ 12])
+  }}.
 
   Definition isLegalInstruction : UInternalFunction reg_t empty_ext_fn_t :=
     {{
         fun isLegalInstruction (inst : bits_t 32) : bits_t 1 =>
-          let fields := getFields (inst) in
-          match get(fields, opcode) with
+          let funct3 := get_funct3(inst) in
+          let funct7 := get_funct7(inst) in
+          let rs1 := get_rs1(inst) in
+          match get_opcode(inst) with
           | #opcode_LOAD =>
-            match get(fields, funct3) with
+            match funct3 with
             | #funct3_LB  => Ob~1
             | #funct3_LH  => Ob~1
             | #funct3_LW  => Ob~1
@@ -95,7 +147,7 @@ Section RV32Helpers.
             return default: Ob~0
             end
           | #opcode_OP_IMM =>
-            match get(fields,funct3) with
+            match funct3 with
             | #funct3_ADD  => Ob~1 (* SUB is the same funct3*)
             | #funct3_SLT  => Ob~1
             | #funct3_SLTU => Ob~1
@@ -103,39 +155,39 @@ Section RV32Helpers.
             | #funct3_OR   => Ob~1
             | #funct3_AND  => Ob~1
             | #funct3_SLL  =>
-              (get(fields,funct7)[|3`d1| :+ 6] == Ob~0~0~0~0~0~0)
-                && (get(fields,funct7)[|3`d0|] == Ob~0)
+              (funct7[|3`d1| :+ 6] == Ob~0~0~0~0~0~0)
+                && (funct7[|3`d0|] == Ob~0)
             | #funct3_SRL  =>
-              ((get(fields,funct7)[|3`d1| :+ 6] == Ob~0~0~0~0~0~0)
-               || (get(fields,funct7)[|3`d1| :+ 6] == Ob~0~1~0~0~0~0))
-                && get(fields,funct7)[|3`d0|] == Ob~0 (* All the funct3_SR* are the same *)
+              ((funct7[|3`d1| :+ 6] == Ob~0~0~0~0~0~0)
+               || (funct7[|3`d1| :+ 6] == Ob~0~1~0~0~0~0))
+                && funct7[|3`d0|] == Ob~0 (* All the funct3_SR* are the same *)
             return default: Ob~0
             end
           | #opcode_AUIPC => Ob~1
           | #opcode_STORE =>
-            match get(fields, funct3) with
+            match funct3 with
             | #funct3_SB => Ob~1
             | #funct3_SH => Ob~1
             | #funct3_SW => Ob~1
             return default: Ob~0
             end
           | #opcode_OP =>
-            match get(fields,funct3) with
-            | #funct3_ADD  => (get(fields,funct7) == Ob~0~0~0~0~0~0~0) ||
-                             (get(fields,funct7) == Ob~0~1~0~0~0~0~0) ||
-                             get(fields, funct7) == Ob~0~0~0~0~0~0~1
-            | #funct3_SRL  => (get(fields,funct7) == Ob~0~0~0~0~0~0~0) || get(fields,funct7) == Ob~0~1~0~0~0~0~0
-            | #funct3_SLL  => get(fields,funct7) == Ob~0~0~0~0~0~0~0
-            | #funct3_SLT  => get(fields,funct7) == Ob~0~0~0~0~0~0~0
-            | #funct3_SLTU => get(fields,funct7) == Ob~0~0~0~0~0~0~0
-            | #funct3_XOR  => get(fields,funct7) == Ob~0~0~0~0~0~0~0
-            | #funct3_OR   => get(fields,funct7) == Ob~0~0~0~0~0~0~0
-            | #funct3_AND  => get(fields,funct7) == Ob~0~0~0~0~0~0~0
+            match funct3 with
+            | #funct3_ADD  => (funct7 == Ob~0~0~0~0~0~0~0) ||
+                             (funct7 == Ob~0~1~0~0~0~0~0) ||
+                             funct7 == Ob~0~0~0~0~0~0~1
+            | #funct3_SRL  => (funct7 == Ob~0~0~0~0~0~0~0) || funct7 == Ob~0~1~0~0~0~0~0
+            | #funct3_SLL  => funct7 == Ob~0~0~0~0~0~0~0
+            | #funct3_SLT  => funct7 == Ob~0~0~0~0~0~0~0
+            | #funct3_SLTU => funct7 == Ob~0~0~0~0~0~0~0
+            | #funct3_XOR  => funct7 == Ob~0~0~0~0~0~0~0
+            | #funct3_OR   => funct7 == Ob~0~0~0~0~0~0~0
+            | #funct3_AND  => funct7 == Ob~0~0~0~0~0~0~0
             return default: Ob~0
             end
           | #opcode_LUI    => Ob~1
           | #opcode_BRANCH =>
-            match get(fields,funct3) with
+            match funct3 with
             | #funct3_BEQ  => Ob~1
             | #funct3_BNE  => Ob~1
             | #funct3_BLT  => Ob~1
@@ -144,17 +196,17 @@ Section RV32Helpers.
             | #funct3_BGEU => Ob~1
             return default: Ob~0
             end
-          | #opcode_JALR   => get(fields,funct3) == Ob~0~0~0
+          | #opcode_JALR   => funct3 == Ob~0~0~0
           | #opcode_JAL    => Ob~1
           | #opcode_SYSTEM =>
-            match get(fields, funct3) with
+            match funct3 with
             | #funct3_PRIV =>
-              (get(fields, rd) == Ob~0~0~0~0~0)
-                && (match (get(fields, funct7) ++ get(fields, rs2)) with
-                    | Ob~0~0~0~0~0~0~0~0~0~0~0~0 => (get(fields, rs1) == Ob~0~0~0~0~0)        (* // ECALL *)
-                    | Ob~0~0~0~0~0~0~0~0~0~0~0~1 => (get(fields, rs1) == Ob~0~0~0~0~0)        (* // EBREAK *)
-                    | Ob~0~0~1~1~0~0~0~0~0~0~1~0 => (get(fields, rs1) == Ob~0~0~0~0~0)        (* // MRET *)
-                    | Ob~0~0~0~1~0~0~0~0~0~1~0~1 => (get(fields, rs1) == Ob~0~0~0~0~0)        (* // WFI *)
+              (get_rd(inst) == Ob~0~0~0~0~0)
+                && (match (funct7 ++ get_rs2(inst)) with
+                    | Ob~0~0~0~0~0~0~0~0~0~0~0~0 => (rs1 == Ob~0~0~0~0~0)        (* // ECALL *)
+                    | Ob~0~0~0~0~0~0~0~0~0~0~0~1 => (rs1 == Ob~0~0~0~0~0)        (* // EBREAK *)
+                    | Ob~0~0~1~1~0~0~0~0~0~0~1~0 => (rs1 == Ob~0~0~0~0~0)        (* // MRET *)
+                    | Ob~0~0~0~1~0~0~0~0~0~1~0~1 => (rs1 == Ob~0~0~0~0~0)        (* // WFI *)
                     return default: Ob~0
                     end)
             return default: Ob~0
@@ -240,13 +292,12 @@ Section RV32Helpers.
         fun getImmediate (dInst: struct_t decoded_sig) : bits_t 32 =>
           let imm_type_v := get(dInst, immediateType) in
           if (get(imm_type_v, valid) == Ob~1) then
-            let fields := getFields (get(dInst,inst)) in
             match (get(imm_type_v, data)) with
-            | (enum imm_type { ImmI }) => get(fields, immI)
-            | (enum imm_type { ImmS }) => get(fields, immS)
-            | (enum imm_type { ImmB }) => get(fields, immB)
-            | (enum imm_type { ImmU }) => get(fields, immU)
-            | (enum imm_type { ImmJ }) => get(fields, immJ)
+            | (enum imm_type { ImmI }) => get_immI(get(dInst, inst))
+            | (enum imm_type { ImmS }) => get_immS(get(dInst, inst))
+            | (enum imm_type { ImmB }) => get_immB(get(dInst, inst))
+            | (enum imm_type { ImmU }) => get_immU(get(dInst, inst))
+            | (enum imm_type { ImmJ }) => get_immJ(get(dInst, inst))
             return default: |32`d0|
             end
           else
@@ -297,9 +348,9 @@ Section RV32Helpers.
                 else
                   let alu_src1 := rs1_val in
                   let alu_src2 := if isIMM then imm_val else rs2_val in
-                  let funct3 := get(getFields(inst), funct3) in
-                  let funct7 := get(getFields(inst), funct7) in
-                  let opcode := get(getFields(inst), opcode) in
+                  let funct3 := get_funct3(inst) in
+                  let funct7 := get_funct7(inst) in
+                  let opcode := get_opcode(inst) in
                   if ((funct3 == #funct3_ADD) && isIMM) || (opcode == #opcode_BRANCH) then
                     (* // replace the instruction by an add *)
                     (set funct7 := #funct7_ADD)
@@ -326,7 +377,7 @@ Section RV32Helpers.
           let isJAL     := (inst[|5`d2|] == Ob~1) && (inst[|5`d3|] == Ob~1) in
           let isJALR    := (inst[|5`d2|] == Ob~1) && (inst[|5`d3|] == Ob~0) in
           let incPC     := pc + |32`d4| in
-          let funct3    := get(getFields(inst), funct3) in
+          let funct3    := get_funct3(inst) in
           let taken     := Ob~1 in  (* // for JAL and JALR *)
           let nextPC    := incPC in
           if (!isControl) then
@@ -597,13 +648,13 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
         let fetched_bookkeeping := f2dprim.(waitFromFetch.deq)() in
         let decodedInst := decode_fun(instr) in
         when (get(fetched_bookkeeping, epoch) == read1(epoch)) do
-             (let rs1_idx := get(getFields(instr), rs1) in
-             let rs2_idx := get(getFields(instr), rs2) in
+             (let rs1_idx := get_rs1(instr) in
+             let rs2_idx := get_rs2(instr) in
              let score1 := scoreboard.(Scoreboard.search)(sliceReg(rs1_idx)) in
              let score2 := scoreboard.(Scoreboard.search)(sliceReg(rs2_idx)) in
              guard (score1 == Ob~0~0 && score2 == Ob~0~0);
              (when (get(decodedInst, valid_rd)) do
-                  let rd_idx := get(getFields(instr), rd) in
+                  let rd_idx := get_rd(instr) in
                   scoreboard.(Scoreboard.insert)(sliceReg(rd_idx)));
              let rs1 := rf.(Rf.read_1)(sliceReg(rs1_idx)) in
              let rs2 := rf.(Rf.read_1)(sliceReg(rs2_idx)) in
@@ -631,10 +682,9 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
     {{
         fun isMultiplyInst (dInst: struct_t decoded_sig) : bits_t 1 =>
           mulState.(Multiplier.enabled)() &&
-          let fields := getFields(get(dInst, inst)) in
-          (get(fields, funct7) == #funct7_MUL) &&
-          (get(fields, funct3) == #funct3_MUL) &&
-          (get(fields, opcode) == #opcode_OP)
+          (get_funct7(get(dInst, inst)) == #funct7_MUL) &&
+          (get_funct3(get(dInst, inst)) == #funct3_MUL) &&
+          (get_opcode(get(dInst, inst)) == #opcode_OP)
     }}.
 
   Definition isControlInst : UInternalFunction reg_t empty_ext_fn_t :=
@@ -661,7 +711,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
             write0(pc, |32`d0|)
           else
             (let fInst := get(dInst, inst) in
-             let funct3 := get(getFields(fInst), funct3) in
+             let funct3 := get_funct3(fInst) in
              let rs1_val := get(decoded_bookkeeping, rval1) in
              let rs2_val := get(decoded_bookkeeping, rval2) in
              (* Use the multiplier module or the ALU *)
@@ -719,7 +769,6 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
         let execute_bookkeeping := e2w.(fromExecute.deq)() in
         let dInst := get(execute_bookkeeping, dInst) in
         let data := get(execute_bookkeeping, newrd) in
-        let fields := getFields(get(dInst, inst)) in
         write0(instr_count, read0(instr_count)+|32`d1|);
         if isMemoryInst(dInst) then (* // write_val *)
           (* Byte enable shifting back *)
@@ -739,7 +788,7 @@ Module RV32Core (RVP: RVParams) (Multiplier: MultiplierInterface).
         else
           pass;
         if get(dInst,valid_rd) then
-          let rd_idx := get(fields,rd) in
+          let rd_idx := get_rd(get(dInst, inst)) in
           scoreboard.(Scoreboard.remove)(sliceReg(rd_idx));
           if (rd_idx == |5`d0|)
           then pass
